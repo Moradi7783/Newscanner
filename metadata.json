@@ -1,0 +1,6 @@
+{
+  "name": "لک اسکنر",
+  "description": "رادار اسکنر فوق‌العاده قوی و هوشمند آی‌پی‌های سالم و ضد فیلتر متناسب با اینترنت همراه اول، ایرانسل و رایتل در ایران.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
