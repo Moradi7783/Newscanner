@@ -795,6 +795,26 @@ fun IpsTab(
             }
         }
 
+        // Bulk Copy Action Button matching High Density aesthetics
+        Button(
+            onClick = {
+                if (displayList.isNotEmpty()) {
+                    val allIpsStr = displayList.joinToString("\n") { it.ip }
+                    clipboardManager.setText(AnnotatedString(allIpsStr))
+                    Toast.makeText(context, "${displayList.size} آی پی کپی شدند.", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(context, "لیست آی پی ها خالی است.", Toast.LENGTH_SHORT).show()
+                }
+            },
+            modifier = Modifier.fillMaxWidth().padding(bottom = 10.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Icon(Icons.Default.ContentCopy, contentDescription = "کپی همه", tint = MaterialTheme.colorScheme.onSecondary, modifier = Modifier.size(16.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text("کپی دسته جمعی آی پی ها (${displayList.size})", color = MaterialTheme.colorScheme.onSecondary, fontSize = 12.sp, fontWeight = FontWeight.Bold)
+        }
+
         if (displayList.isEmpty()) {
             Box(
                 modifier = Modifier.weight(1f).fillMaxWidth(),
@@ -964,20 +984,11 @@ fun ConfigsGeneratorTab(
     val context = LocalContext.current
 
     var importLinkInput by remember { mutableStateOf("") }
-    var selectedIpForInject by remember { mutableStateOf("") }
-    var modifiedConfigOutput by remember { mutableStateOf("") }
-
-    // Dropdown state
-    var expandedDropdown by remember { mutableStateOf(false) }
+    var configLabelPrefix by remember { mutableStateOf("UltraLek") }
+    var generatedConfigs by remember { mutableStateOf<List<String>>(emptyList()) }
 
     val cleanAllIpsList = scannedIps.map { it.ip } + favoriteIps.map { it.ip }
     val uniqueIps = cleanAllIpsList.distinct()
-
-    LaunchedEffect(uniqueIps) {
-        if (selectedIpForInject.isEmpty() && uniqueIps.isNotEmpty()) {
-            selectedIpForInject = uniqueIps.first()
-        }
-    }
 
     Column(
         modifier = Modifier
@@ -987,80 +998,77 @@ fun ConfigsGeneratorTab(
         verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         Text(
-            text = "مبدل خودکار به کانفیگ های V2ray / Vless / Vmess / Reality",
+            text = "تکثیرگر دستی و پچر کانفیگ های V2ray / Vless / Vmess / Trojan",
             fontWeight = FontWeight.Black,
-            fontSize = 16.sp,
+            fontSize = 15.sp,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.fillMaxWidth(),
             textAlign = TextAlign.Right
         )
 
         Card(
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
         ) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "۱. انتخاب آی پی سالم برای جایگزینی:",
+                    text = "۱. مشخصات دیتابیس آی پی ها:",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Right
                 )
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(MaterialTheme.colorScheme.background, RoundedCornerShape(10.dp))
+                        .padding(12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${uniqueIps.size} آی پی سالم",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 14.sp,
+                        fontFamily = FontFamily.Monospace,
+                        color = Color(0xFFB6EEAF)
+                    )
+                    Text(
+                        text = "آی پی های آماده تکثیر:",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
 
                 if (uniqueIps.isEmpty()) {
                     Text(
-                        "توجه: هیچ آی پی سالمی اسکن نشده است. لطفا ابتدا اسکن کنید.",
-                        color = Color.Red,
-                        fontSize = 12.sp,
-                        modifier = Modifier.fillMaxWidth(),
+                        text = "توجه: هیچ آی پی سالمی یافت نشده است. ابتدا به تب 'رادار اسکنر' بروید و اسکن کنید تا دیتابیس پر شود.",
+                        color = Color(0xFFF2B8B5),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.fillMaxWidth().padding(top = 4.dp),
                         textAlign = TextAlign.Right
                     )
-                } else {
-                    Box(modifier = Modifier.fillMaxWidth()) {
-                        Button(
-                            onClick = { expandedDropdown = !expandedDropdown },
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Text(
-                                "آی پی انتخاب شده: $selectedIpForInject",
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold,
-                                fontFamily = FontFamily.Monospace
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = expandedDropdown,
-                            onDismissRequest = { expandedDropdown = false },
-                            modifier = Modifier.fillMaxWidth(0.9f)
-                        ) {
-                            uniqueIps.forEach { ip ->
-                                DropdownMenuItem(
-                                    text = { Text(ip, fontFamily = FontFamily.Monospace) },
-                                    onClick = {
-                                        selectedIpForInject = ip
-                                        expandedDropdown = false
-                                    }
-                                )
-                            }
-                        }
-                    }
                 }
             }
         }
 
-        Card(modifier = Modifier.fillMaxWidth()) {
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
+        ) {
             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "۲. ورود کانفیگ خام برای تزریق آی پی (اختیاری):",
+                    text = "۲. ورود کانفیگ خام خارجی (دستی):",
                     fontWeight = FontWeight.Bold,
                     fontSize = 13.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Right
                 )
+                
                 Text(
-                    text = "می‌توانید کانفیگ vless یا vmess خود را وارد کنید تا آی پی سالم لک اسکنر به طور مستقیم به آن تزریق شود.",
+                    text = "آدرس اتصال خام vless://، vmess:// یا trojan:// را با کیبورد وارد کنید تا روی کل آی پی های پیدا شده جفت شود:",
                     fontSize = 11.sp,
                     modifier = Modifier.fillMaxWidth(),
                     textAlign = TextAlign.Right,
@@ -1070,119 +1078,134 @@ fun ConfigsGeneratorTab(
                 OutlinedTextField(
                     value = importLinkInput,
                     onValueChange = { importLinkInput = it },
-                    placeholder = { Text("vless://... or vmess://...", fontSize = 12.sp) },
+                    placeholder = { Text("vless://user@domain.com:443?type=ws...#MyRemarks", fontSize = 11.sp) },
                     modifier = Modifier.fillMaxWidth(),
-                    maxLines = 4,
-                    textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 12.sp)
+                    maxLines = 5,
+                    textStyle = TextStyle(fontFamily = FontFamily.Monospace, fontSize = 11.sp)
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "۳. برچسب نام دلخواه کانفیگ ها (Label):",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 13.sp,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Right
+                )
+                
+                OutlinedTextField(
+                    value = configLabelPrefix,
+                    onValueChange = { configLabelPrefix = it },
+                    placeholder = { Text("مثال: UltraLek", fontSize = 12.sp) },
+                    modifier = Modifier.fillMaxWidth(),
+                    textStyle = TextStyle(fontSize = 12.sp, textAlign = TextAlign.Right, textDirection = TextDirection.Rtl)
                 )
 
                 Button(
                     onClick = {
-                        if (selectedIpForInject.isEmpty()) {
-                            Toast.makeText(context, "لطفا ابتدا یک آی پی سالم از دیتابیس انتخاب کنید.", Toast.LENGTH_SHORT).show()
+                        if (uniqueIps.isEmpty()) {
+                            Toast.makeText(context, "هیچ آی پی سالمی برای تزریق ندارید. ابتدا اسکن کنید.", Toast.LENGTH_SHORT).show()
                         } else if (importLinkInput.trim().isEmpty()) {
                             Toast.makeText(context, "لطفا کانفیگ خام را وارد کنید.", Toast.LENGTH_SHORT).show()
+                        } else if (!importLinkInput.startsWith("vless://") && !importLinkInput.startsWith("vmess://") && !importLinkInput.startsWith("trojan://")) {
+                            Toast.makeText(context, "فرمت کانفیگ نامعتبر است. فقط پروتکل های vless, vmess, trojan مجاز است.", Toast.LENGTH_SHORT).show()
                         } else {
-                            val result = ConfigConvertor.injectCleanIp(importLinkInput, selectedIpForInject)
-                            modifiedConfigOutput = result
-                            Toast.makeText(context, "تزریق آی پی با موفقیت انجام شد.", Toast.LENGTH_SHORT).show()
+                            val results = ConfigConvertor.generateBulkConfigs(
+                                importLinkInput,
+                                uniqueIps,
+                                configLabelPrefix.ifBlank { "LekScan" }
+                            )
+                            generatedConfigs = results
+                            Toast.makeText(context, "تکثیر کانفیگ ها با موفقیت انجام شد (${results.size} عدد).", Toast.LENGTH_SHORT).show()
                         }
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("انجام تزریق آی پی به کانفیگ")
+                    Icon(Icons.Default.VpnLock, contentDescription = "تکثیر")
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("تکثیر کانفیگ بر اساس آی پی ها", fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
             }
         }
 
-        if (modifiedConfigOutput.isNotEmpty()) {
+        if (generatedConfigs.isNotEmpty()) {
             Card(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
             ) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Text(
-                        "کانفیگ نهایی پچ شده:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 12.sp,
+                        text = "کانفیگ های تکثیر شده نهایی (${generatedConfigs.size} عدد):",
+                        fontWeight = FontWeight.Black,
+                        fontSize = 13.sp,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Right
                     )
-                    Text(
-                        text = modifiedConfigOutput,
-                        fontFamily = FontFamily.Monospace,
-                        fontSize = 11.sp,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(MaterialTheme.colorScheme.surface)
-                            .padding(8.dp)
-                    )
+
+                    // Mega Bulk Copy Button matching High Density colors
                     Button(
                         onClick = {
-                            clipboardManager.setText(AnnotatedString(modifiedConfigOutput))
-                            Toast.makeText(context, "کانفیگ کپی شد.", Toast.LENGTH_SHORT).show()
+                            val combined = generatedConfigs.joinToString("\n")
+                            clipboardManager.setText(AnnotatedString(combined))
+                            Toast.makeText(context, "کل ${generatedConfigs.size} کانفیگ کپی شدند.", Toast.LENGTH_SHORT).show()
                         },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("کپی کانفیگ تزریق شده")
-                    }
-                }
-            }
-        }
-
-        // Section for automatic built-in generators based on selected ip
-        if (selectedIpForInject.isNotEmpty()) {
-            Card(modifier = Modifier.fillMaxWidth()) {
-                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "آی پی انتخابی شما به ۴ کانفیگ پیش‌ فرض فوق العاده ضد فیلتر تبدیل شد:",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 13.sp,
                         modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Right
-                    )
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB6EEAF))
+                    ) {
+                        Icon(Icons.Default.ContentCopy, contentDescription = "کپی همه", tint = Color(0xFF1A3718))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("کپی دسته جمعی کانفیگ ها (یکجا)", color = Color(0xFF1A3718), fontWeight = FontWeight.Black, fontSize = 12.sp)
+                    }
 
-                    val autoConfigs = ConfigConvertor.convertToV2rayConfigs(selectedIpForInject, activeOperator)
-                    autoConfigs.forEach { config ->
-                        val protocol = when {
-                            config.startsWith("vless://") && config.contains("reality") -> "VLESS Reality (امنیتی)"
-                            config.startsWith("vless://") -> "VLESS TLS (سرعت بالا)"
-                            config.startsWith("vmess://") -> "VMess WebSocket"
-                            else -> "Trojan TLS (ضد فیلترینگ)"
-                        }
+                    HorizontalDivider(modifier = Modifier.padding(vertical = 4.dp))
 
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(6.dp))
-                                .padding(8.dp)
-                        ) {
-                            Text(
-                                text = protocol,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary,
-                                fontSize = 12.sp,
-                                modifier = Modifier.fillMaxWidth(),
-                                textAlign = TextAlign.Right
-                            )
-                            Text(
-                                text = config,
-                                fontFamily = FontFamily.Monospace,
-                                fontSize = 10.sp,
-                                maxLines = 1,
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-                                color = MaterialTheme.colorScheme.outline
-                            )
-                            Button(
-                                onClick = {
-                                    clipboardManager.setText(AnnotatedString(config))
-                                    Toast.makeText(context, "کپی شد: $protocol", Toast.LENGTH_SHORT).show()
-                                },
-                                modifier = Modifier.align(Alignment.End),
-                                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondaryContainer)
+                    // Individual lists
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        generatedConfigs.forEachIndexed { idx, config ->
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.background, RoundedCornerShape(8.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(8.dp))
+                                    .padding(10.dp)
                             ) {
-                                Text("کپی این لینک", fontSize = 10.sp, color = MaterialTheme.colorScheme.onSecondaryContainer)
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            clipboardManager.setText(AnnotatedString(config))
+                                            Toast.makeText(context, "کانفیگ شماره ${idx + 1} کپی شد.", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.size(32.dp)
+                                    ) {
+                                        Icon(Icons.Default.ContentCopy, contentDescription = "کپی", modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                    
+                                    Text(
+                                        text = "کانفیگ #${idx + 1} - ${uniqueIps[idx]}",
+                                        fontFamily = FontFamily.Monospace,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text(
+                                    text = config,
+                                    fontFamily = FontFamily.Monospace,
+                                    fontSize = 10.sp,
+                                    maxLines = 1,
+                                    color = MaterialTheme.colorScheme.outline,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
                     }

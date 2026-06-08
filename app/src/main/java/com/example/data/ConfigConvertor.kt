@@ -69,12 +69,11 @@ object ConfigConvertor {
     /**
      * Parses a raw v2ray link and injects our healthy IP into it, returning the updated fully qualified config URI.
      */
-    fun injectCleanIp(rawLink: String, ip: String): String {
+    fun injectCleanIp(rawLink: String, ip: String, label: String = "LekScan"): String {
         val cleanIp = ip.trim()
         val trimmed = rawLink.trim()
         if (trimmed.startsWith("vless://") || trimmed.startsWith("trojan://")) {
             return try {
-                // Parse out URI components manually to avoid issues with standard Android SDK Uri on non-standard protocols
                 val parts = trimmed.split("@")
                 if (parts.size == 2) {
                     val prefix = parts[0]
@@ -82,23 +81,26 @@ object ConfigConvertor {
                     val serverAndParams = suffix.split(":")
                     if (serverAndParams.size >= 2) {
                         val rest = serverAndParams.subList(1, serverAndParams.size).joinToString(":")
-                        // Extract original query parameters
                         val paramSplit = rest.split("?")
                         val portAndHash = paramSplit[0]
                         val port = portAndHash.split("#")[0]
-                        val hashPart = if (paramSplit.size > 1 && paramSplit[1].contains("#")) {
-                            "#" + paramSplit[1].substringAfter("#")
-                        } else if (portAndHash.contains("#")) {
-                            "#" + portAndHash.substringAfter("#")
-                        } else {
-                            ""
-                        }
                         
                         val params = if (paramSplit.size > 1) {
                             "?" + paramSplit[1].split("#")[0]
                         } else ""
 
-                        "$prefix@$cleanIp:$port$params$hashPart-CleanIP"
+                        val baseName = if (paramSplit.size > 1 && paramSplit[1].contains("#")) {
+                            paramSplit[1].substringAfter("#")
+                        } else if (portAndHash.contains("#")) {
+                            portAndHash.substringAfter("#")
+                        } else {
+                            "Secured"
+                        }
+                        
+                        // Strip out previous IP suffix/clean name
+                        val cleanBase = baseName.split("-")[0].trim()
+
+                        "$prefix@$cleanIp:$port$params#$cleanBase-$label-$cleanIp"
                     } else trimmed
                 } else trimmed
             } catch (e: Exception) {
@@ -108,18 +110,36 @@ object ConfigConvertor {
             return try {
                 val base64Content = trimmed.substring(8)
                 val json = Base64Encoder.decode(base64Content)
-                // Substitute "add" field in JSON with clean IP
-                val newJson = if (json.contains("\"add\"")) {
-                    json.replace(Regex("\"add\"\\s*:\\s*\"[^\"]+\""), "\"add\":\"$cleanIp\"")
-                } else {
-                    json
+                
+                var newJson = json
+                if (json.contains("\"add\"")) {
+                    newJson = newJson.replace(Regex("\"add\"\\s*:\\s*\"[^\"]+\""), "\"add\":\"$cleanIp\"")
                 }
+                
+                if (newJson.contains("\"ps\"")) {
+                    val oldPsMatch = Regex("\"ps\"\\s*:\\s*\"([^\"]+)\"").find(newJson)
+                    val oldPs = oldPsMatch?.groupValues?.get(1) ?: "VMessConfig"
+                    val cleanPs = oldPs.split("-")[0].trim()
+                    newJson = newJson.replace(Regex("\"ps\"\\s*:\\s*\"[^\"]+\""), "\"ps\":\"$cleanPs-$label-$cleanIp\"")
+                }
+                
                 "vmess://${Base64Encoder.encode(newJson)}"
             } catch (e: Exception) {
                 trimmed
             }
         }
         return trimmed
+    }
+
+    /**
+     * Multiplies a raw client configuration against a list of healthy IPs.
+     */
+    fun generateBulkConfigs(rawLink: String, ips: List<String>, label: String = "LekScan"): List<String> {
+        val trimmed = rawLink.trim()
+        if (trimmed.isEmpty() || ips.isEmpty()) return emptyList()
+        return ips.map { ip ->
+            injectCleanIp(trimmed, ip, label)
+        }
     }
 }
 
